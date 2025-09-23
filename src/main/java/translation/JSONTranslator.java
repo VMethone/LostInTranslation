@@ -39,21 +39,19 @@ public class JSONTranslator implements Translator {
     public JSONTranslator(String filename) {
         // read the file to get the data to populate things...
         try {
-
-            String jsonString = Files.readString(Paths.get(getClass().getClassLoader().getResource(filename).toURI()));
+            String jsonString = Files.readString(
+                    Paths.get(getClass().getClassLoader().getResource(filename).toURI())
+            );
 
             JSONArray jsonArray = new JSONArray(jsonString);
 
             for (int i = 0; i < jsonArray.length(); i++) {
-
                 JSONObject countryData = jsonArray.getJSONObject(i);
                 String countryCode = countryData.getString("alpha3");
 
-                List<String> languages = new ArrayList<>();
-
                 countryCodes.add(countryCode);
 
-                // iterate through the other keys to get the information that we need
+                // iterate through the keys (languages)
                 for (String key : countryData.keySet()) {
                     if (!key.equals("id") && !key.equals("alpha2") && !key.equals("alpha3")) {
                         String languageCode = key;
@@ -61,8 +59,9 @@ public class JSONTranslator implements Translator {
                         String translatedName = countryData.getString(languageCode);
                         translations.put(countryCode + "-" + languageCode, translatedName);
 
-                        if (!languages.contains(languageCode)) {
-                            languages.add(languageCode);
+                        // make sure we only add unique language codes
+                        if (!languageCodes.contains(languageCode)) {
+                            languageCodes.add(languageCode);
                         }
                     }
                 }
