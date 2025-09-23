@@ -3,71 +3,68 @@ package translation;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
-import java.util.List;
 
-// Task D solved: GUI updated to align with README-style UI (dropdowns, no manual typing).
 public class GUI {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            // For now we use CanadaTranslator; you can later swap in JSONTranslator.
             Translator translator = new CanadaTranslator();
 
-            // ===== Country row =====
-            JPanel countryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-            countryPanel.add(new JLabel("Country:"));
-            List<String> countryCodes = translator.getCountryCodes();
-            JComboBox<String> countryCombo =
-                    new JComboBox<>(countryCodes.toArray(new String[0]));
-            if (!countryCodes.isEmpty()) countryCombo.setSelectedIndex(0);
-            countryPanel.add(countryCombo);
-
-            // ===== Language row =====
+            // ===== language line =====
             JPanel languagePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             languagePanel.add(new JLabel("Language:"));
-            List<String> languageCodes = translator.getLanguageCodes();
+            java.util.List<String> languageCodes = translator.getLanguageCodes();
             JComboBox<String> languageCombo =
                     new JComboBox<>(languageCodes.toArray(new String[0]));
             if (!languageCodes.isEmpty()) languageCombo.setSelectedIndex(0);
             languagePanel.add(languageCombo);
 
-            // ===== Result row =====
+            // ===== result =====
+            JLabel resultLabel = new JLabel("Translation: ");
             JPanel resultPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-            resultPanel.add(new JLabel("Translation:"));
-            JLabel resultLabel = new JLabel(" ");
             resultPanel.add(resultLabel);
 
-            // ===== Behavior: auto-translate on selection change =====
+            // ===== coutry line=====
+            java.util.List<String> countryCodes = translator.getCountryCodes();
+            JList<String> countryList = new JList<>(countryCodes.toArray(new String[0]));
+            countryList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            countryList.setVisibleRowCount(12); // 你可以调这个行数控制可视高度
+            if (!countryCodes.isEmpty()) countryList.setSelectedIndex(0);
+
+            JScrollPane countryScroll = new JScrollPane(countryList);
+            countryScroll.setBorder(BorderFactory.createTitledBorder("Countries"));
+            countryScroll.getVerticalScrollBar().setUnitIncrement(16);
+
             Runnable doTranslate = () -> {
-                String country = (String) countryCombo.getSelectedItem();
+                String country = countryList.getSelectedValue();
                 String language = (String) languageCombo.getSelectedItem();
+                if (country == null || language == null) {
+                    resultLabel.setText("Translation: (select country & language)");
+                    return;
+                }
                 String result = translator.translate(country, language);
-                resultLabel.setText(result != null ? result : "no translation found!");
+                resultLabel.setText("Translation: " + (result != null ? result : "no translation found!"));
             };
 
-            // Initial translate
-            if (countryCombo.getItemCount() > 0 && languageCombo.getItemCount() > 0) {
-                doTranslate.run();
-            }
+            doTranslate.run();
 
-            // Listeners
-            countryCombo.addItemListener(e -> {
-                if (e.getStateChange() == ItemEvent.SELECTED) doTranslate.run();
-            });
             languageCombo.addItemListener(e -> {
                 if (e.getStateChange() == ItemEvent.SELECTED) doTranslate.run();
             });
+            countryList.addListSelectionListener(e -> {
+                if (!e.getValueIsAdjusting()) doTranslate.run();
+            });
 
-            // ===== Main panel =====
-            JPanel mainPanel = new JPanel();
-            mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-            mainPanel.add(countryPanel);
-            mainPanel.add(languagePanel);
-            mainPanel.add(resultPanel);
+            JPanel top = new JPanel();
+            top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+            top.add(languagePanel);
+            top.add(resultPanel);
 
             JFrame frame = new JFrame("Country Name Translator");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setContentPane(mainPanel);
+            frame.setLayout(new BorderLayout(8, 8));
+            frame.add(top, BorderLayout.NORTH);
+            frame.add(countryScroll, BorderLayout.CENTER);
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
