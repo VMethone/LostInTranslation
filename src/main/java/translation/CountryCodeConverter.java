@@ -1,92 +1,46 @@
 package translation;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.nio.file.Path;
+import java.util.*;
 
-/**
- * This class provides the service of converting country codes to their names and back.
- */
 public class CountryCodeConverter {
+    private final Map<String,String> nameToAlpha3 = new HashMap<>();
+    private final Map<String,String> alpha3ToName = new HashMap<>();
 
-    private Map<String, String> countryCodeToCountry = new HashMap<>();
-    private Map<String, String> countryToCountryCode = new HashMap<>();
-
-    /**
-     * Default constructor that loads the country codes from "country-codes.txt"
-     * in the resources folder.
-     */
-    public CountryCodeConverter() {
-        this("country-codes.txt");
+    public CountryCodeConverter(Path tsv) throws IOException {
+        try (InputStream in = Files.newInputStream(tsv)) {
+            loadFromStream(in);
+        }
     }
 
-    /**
-     * Overloaded constructor that allows us to specify the filename to load the country code data from.
-     * @param filename the name of the file in the resources folder to load the data from
-     * @throws RuntimeException if the resources file can't be loaded properly
-     */
-    public CountryCodeConverter(String filename) {
+    public CountryCodeConverter(InputStream in) throws IOException {
+        loadFromStream(in);
+    }
 
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(getClass()
-                    .getClassLoader().getResource(filename).toURI()));
-
-            Iterator<String> iterator = lines.iterator();
-            iterator.next(); // skip the first line
-            while (iterator.hasNext()) {
-                String line = iterator.next();
+    private void loadFromStream(InputStream in) throws IOException {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            String line = br.readLine(); // header
+            while ((line = br.readLine()) != null) {
+                if (line.isBlank()) continue;
                 String[] parts = line.split("\t");
-                countryCodeToCountry.put(parts[2].trim(), parts[0].trim());
-                countryToCountryCode.put(parts[0].trim(), parts[2].trim());
-                // TODO Task B: use parts to populate the instance variables
+                if (parts.length < 3) continue;
+                String name   = parts[0].trim();
+                String alpha3 = parts[2].trim().toLowerCase(Locale.ROOT);
+                nameToAlpha3.put(name, alpha3);
+                alpha3ToName.put(alpha3, name);
             }
         }
-        catch (IOException | URISyntaxException ex) {
-            throw new RuntimeException(ex);
-        }
-
     }
 
-    /**
-     * Return the name of the country for the given country code.
-     * @param code the 3-letter code of the country
-     * @return the name of the country corresponding to the code
-     */
-    public String fromCountryCode(String code) {
-        // TODO Task B: update this code to use an instance variable to return the correct value
-        if (countryCodeToCountry.containsKey(code.toUpperCase())) {
-            return countryCodeToCountry.get(code.toUpperCase());
-        }
-        return code;
-    }
+    public String toAlpha3(String englishName) { return nameToAlpha3.get(englishName); }
+    public String toEnglish(String alpha3) { return alpha3ToName.get(alpha3.toLowerCase(Locale.ROOT)); }
 
-    /**
-     * Return the code of the country for the given country name.
-     * @param country the name of the country
-     * @return the 3-letter code of the country
-     */
-    public String fromCountry(String country) {
-        // TODO Task B: update this code to use an instance variable to return the correct value
-        if (countryToCountryCode.containsKey(country)){
-            return countryToCountryCode.get(country);
-        }
-        return country;
-    }
-
-    /**
-     * Return how many countries are included in this country code converter.
-     * @return how many countries are included in this country code converter.
-     */
-    public int getNumCountries() {
-        // TODO Task B: update this code to use an instance variable to return the correct value
-        if (countryCodeToCountry.size() == countryToCountryCode.size()) {
-            return countryCodeToCountry.size();
-        }
-        return 0;
+    public java.util.List<String> allEnglishNames() {
+        var l = new ArrayList<>(nameToAlpha3.keySet());
+        Collections.sort(l);
+        return l;
     }
 }
