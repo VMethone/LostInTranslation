@@ -24,10 +24,8 @@ public class GUI {
         countryConv = new CountryCodeConverter(countryStream);
         langConv    = new LanguageCodeConverter(languageStream);
 
-        // 重要：使用你们已有的 JSONTranslator（无参构造，内部读取 sample.json）
         translator  = new JSONTranslator();
 
-        // 只展示 sample.json 里存在的语言/国家（做交集）
         Set<String> jsonLangCodes    = new HashSet<>(translator.getLanguageCodes());
         Set<String> jsonCountryCodes = new HashSet<>(translator.getCountryCodes());
 
