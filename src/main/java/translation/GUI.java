@@ -16,32 +16,28 @@ public class GUI {
     private Translator translator;
 
     public GUI() throws Exception {
-        var countryStream  = GUI.class.getResourceAsStream("/country-codes.txt");
-        var languageStream = GUI.class.getResourceAsStream("/language-codes.txt");
-        if (countryStream == null || languageStream == null) {
-            throw new IllegalStateException("Missing /country-codes.txt or /language-codes.txt");
-        }
-        countryConv = new CountryCodeConverter(countryStream);
-        langConv    = new LanguageCodeConverter(languageStream);
-
+        countryConv = new CountryCodeConverter();
+        langConv    = new LanguageCodeConverter();
         translator  = new JSONTranslator();
 
         Set<String> jsonLangCodes    = new HashSet<>(translator.getLanguageCodes());
         Set<String> jsonCountryCodes = new HashSet<>(translator.getCountryCodes());
 
         List<String> langNames = new ArrayList<>();
-        for (String name : langConv.allEnglishNames()) {
-            String code = langConv.toCode(name);
-            if (code != null && jsonLangCodes.contains(code.toLowerCase(Locale.ROOT))) {
+        for (String code : jsonLangCodes) {
+            if (code == null) continue;
+            String name = langConv.fromLanguageCode(code.toLowerCase(Locale.ROOT));
+            if (name != null && !"Unknown Language".equals(name)) {
                 langNames.add(name);
             }
         }
         Collections.sort(langNames);
 
         List<String> countryNames = new ArrayList<>();
-        for (String name : countryConv.allEnglishNames()) {
-            String a3 = countryConv.toAlpha3(name);
-            if (a3 != null && jsonCountryCodes.contains(a3.toLowerCase(Locale.ROOT))) {
+        for (String a3 : jsonCountryCodes) {
+            if (a3 == null) continue;
+            String name = countryConv.fromCountryCode(a3.toLowerCase(Locale.ROOT));
+            if (name != null && !"Unknown Country".equals(name)) {
                 countryNames.add(name);
             }
         }
@@ -94,9 +90,11 @@ public class GUI {
             return;
         }
 
-        String alpha3   = countryConv.toAlpha3(countryName);
-        String langCode = langConv.toCode(langName);
-        if (alpha3 == null || langCode == null) {
+        String alpha3   = countryConv.fromCountry(countryName);
+        String langCode = langConv.fromLanguage(langName);
+
+        if (alpha3 == null || langCode == null
+                || "Unknown Code".equals(alpha3) || "Unknown Code".equals(langCode)) {
             resultLabel.setText("Mapping failed. Check codes files.");
             return;
         }

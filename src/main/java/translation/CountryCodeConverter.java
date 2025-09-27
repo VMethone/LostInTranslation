@@ -1,46 +1,83 @@
 package translation;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ * This class provides the service of converting country codes to their names and back.
+ */
 public class CountryCodeConverter {
-    private final Map<String,String> nameToAlpha3 = new HashMap<>();
-    private final Map<String,String> alpha3ToName = new HashMap<>();
 
-    public CountryCodeConverter(Path tsv) throws IOException {
-        try (InputStream in = Files.newInputStream(tsv)) {
-            loadFromStream(in);
-        }
+    private Map<String, String> countryCodeToCountry = new HashMap<>();
+    private Map<String, String> countryToCountryCode = new HashMap<>();
+
+    /**
+     * Default constructor that loads the country codes from "country-codes.txt"
+     * in the resources folder.
+     */
+    public CountryCodeConverter() {
+        this("country-codes.txt");
     }
 
-    public CountryCodeConverter(InputStream in) throws IOException {
-        loadFromStream(in);
-    }
+    /**
+     * Overloaded constructor that allows us to specify the filename to load the country code data from.
+     * @param filename the name of the file in the resources folder to load the data from
+     * @throws RuntimeException if the resources file can't be loaded properly
+     */
+    public CountryCodeConverter(String filename) {
 
-    private void loadFromStream(InputStream in) throws IOException {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-            String line = br.readLine(); // header
-            while ((line = br.readLine()) != null) {
-                if (line.isBlank()) continue;
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(getClass()
+                    .getClassLoader().getResource(filename).toURI()));
+
+            Iterator<String> iterator = lines.iterator();
+            iterator.next();
+            while (iterator.hasNext()) {
+                String line = iterator.next();
                 String[] parts = line.split("\t");
-                if (parts.length < 3) continue;
-                String name   = parts[0].trim();
-                String alpha3 = parts[2].trim().toLowerCase(Locale.ROOT);
-                nameToAlpha3.put(name, alpha3);
-                alpha3ToName.put(alpha3, name);
+                if (parts.length >= 3) {
+                    String name = parts[0].trim();
+                    String code = parts[2].trim().toLowerCase(Locale.ROOT);
+                    countryCodeToCountry.put(code, name);
+                    countryToCountryCode.put(name, code);
+                }
             }
         }
+        catch (IOException | URISyntaxException ex) {
+            throw new RuntimeException(ex);
+        }
+
     }
 
-    public String toAlpha3(String englishName) { return nameToAlpha3.get(englishName); }
-    public String toEnglish(String alpha3) { return alpha3ToName.get(alpha3.toLowerCase(Locale.ROOT)); }
+    /**
+     * Return the name of the country for the given country code.
+     * @param code the 3-letter code of the country
+     * @return the name of the country corresponding to the code
+     */
+    public String fromCountryCode(String code) {
+        return countryCodeToCountry.getOrDefault(
+                code == null ? null : code.toLowerCase(),
+                "Unknown Country"
+        );
+    }
 
-    public java.util.List<String> allEnglishNames() {
-        var l = new ArrayList<>(nameToAlpha3.keySet());
-        Collections.sort(l);
-        return l;
+    /**
+     * Return the code of the country for the given country name.
+     * @param country the name of the country
+     * @return the 3-letter code of the country
+     */
+    public String fromCountry(String country) {
+        return countryToCountryCode.getOrDefault(country, "Unknown Code");
+    }
+
+    /**
+     * Return how many countries are included in this country code converter.
+     * @return how many countries are included in this country code converter.
+     */
+    public int getNumCountries() {
+        return countryCodeToCountry.size();
     }
 }
